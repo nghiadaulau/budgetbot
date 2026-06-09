@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BudgetBot — From bank chaos to AI insight in 48 hours</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css" />
+
+  <style>
+    :root {
+      --bg:#0F172A; --bg-2:#131F38; --surface:#1E293B; --surface-2:#243349;
+      --border:#2A3A55; --text:#F8FAFC; --muted:#94A3B8; --faint:#64748B;
+      --income:#34D399; --expense:#F87171; --amber:#FBBF24; --accent:#60A5FA;
+      --mono:'JetBrains Mono',ui-monospace,monospace; --sans:'Inter',system-ui,sans-serif;
+    }
+    html[data-theme="light"]{
+      --bg:#F8FAFC; --bg-2:#EEF2F7; --surface:#FFFFFF; --surface-2:#F1F5F9;
+      --border:#E2E8F0; --text:#0F172A; --muted:#475569; --faint:#94A3B8;
+      --income:#059669; --expense:#DC2626; --amber:#B45309; --accent:#2563EB;
+    }
+    .reveal{font-family:var(--sans); font-size:32px; color:var(--text); -webkit-font-smoothing:antialiased;}
+    .reveal-viewport{background:var(--bg);
+      background-image:radial-gradient(1100px 560px at 82% -12%,rgba(96,165,250,.10),transparent 60%);
+      transition:background-color .3s ease;}
+    .reveal .slides{text-align:left;}
+    .reveal .slides section{height:100%;}
+    .reveal h1,.reveal h2,.reveal h3{color:var(--text); font-weight:800; letter-spacing:-.03em; line-height:1.06; margin:0 0 .4em; text-transform:none;}
+    .reveal h1{font-weight:900;}
+    .reveal p,.reveal li{color:var(--text); line-height:1.4;}
+    .reveal strong{color:var(--text); font-weight:700;}
+    .reveal a{color:var(--accent); text-decoration:none;}
+    .reveal em{font-style:normal; color:var(--amber);}
+
+    .slide-pad{padding:3.6% 5.5%; height:100%; box-sizing:border-box;}
+    .center{display:flex; flex-direction:column; justify-content:center; height:100%;}
+    .kicker{font:600 14px var(--mono); letter-spacing:.18em; text-transform:uppercase; color:var(--accent); margin-bottom:1rem; display:block;}
+    .muted{color:var(--muted);} .faint{color:var(--faint);} .amber{color:var(--amber);} .income{color:var(--income);} .expense{color:var(--expense);}
+    .mono{font-family:var(--mono); font-variant-numeric:tabular-nums;}
+    .rule{height:1px; background:var(--border); border:0; margin:1.2rem 0;}
+    .sm{font-size:.82rem;} .xs{font-size:.7rem;}
+
+    .brandbar{display:flex; align-items:center; gap:.55rem; font:700 22px var(--sans); letter-spacing:-.02em;}
+    .brandbar .dot{width:12px; height:12px; border-radius:50%; background:linear-gradient(135deg,var(--income),var(--accent)); box-shadow:0 0 16px rgba(52,211,153,.5);}
+    .display{font-weight:900; letter-spacing:-.045em; line-height:.98; font-size:clamp(2.2rem,6vw,5rem);}
+    .tagline{color:var(--muted); font-size:1rem; max-width:30ch;}
+    .meta-row{display:flex; justify-content:space-between; align-items:baseline; color:var(--muted); font:500 .8rem var(--mono); letter-spacing:.04em;}
+    .pill{display:inline-block; font:600 .68rem var(--mono); letter-spacing:.08em; color:var(--amber); border:1px solid var(--border); border-radius:999px; padding:.3rem .8rem; background:var(--surface);}
+
+    .stat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:1rem;}
+    .stat{background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:1.7rem 1.4rem;}
+    .stat .num{font:800 clamp(1.6rem,3.4vw,2.8rem)/1 var(--mono); color:var(--amber); font-variant-numeric:tabular-nums; letter-spacing:-.02em;}
+    .stat .lbl{color:var(--muted); font-size:.78rem; margin-top:.5rem; line-height:1.3;}
+    .stat .sub{color:var(--faint); font-size:.66rem; font-family:var(--mono); margin-top:.15rem;}
+    .band{margin-top:1.1rem; display:flex; gap:2rem; flex-wrap:wrap; font:500 .98rem var(--mono); color:var(--muted);}
+    .band b{color:var(--text); font-weight:700;}
+
+    .cols{display:grid; gap:1.1rem;}
+    .cols-3{grid-template-columns:repeat(3,1fr);}
+    .cols-2{grid-template-columns:repeat(2,1fr);}
+    .split{display:grid; grid-template-columns:1.15fr .85fr; gap:1.4rem; align-items:center;}
+    .card{background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:1.1rem 1.2rem;}
+    .card h3{font-size:1.02rem; margin-bottom:.4rem;}
+    .card p{color:var(--muted); font-size:.84rem; line-height:1.4;}
+    .card .lead{color:var(--amber); font:700 1.3rem var(--mono); margin-bottom:.3rem;}
+    .card .ic{font:700 .72rem var(--mono); color:var(--accent); letter-spacing:.08em;}
+
+    table.dec{width:100%; border-collapse:collapse; font-size:.68rem;}
+    table.dec th,table.dec td{text-align:left; padding:.5rem .65rem; border-bottom:1px solid var(--border); vertical-align:top;}
+    table.dec th{color:var(--accent); font:600 .64rem var(--mono); letter-spacing:.06em; text-transform:uppercase;}
+    table.dec td.choose{color:var(--income); font-weight:600; white-space:nowrap;}
+    table.dec td.why{color:var(--muted);}
+    table.dec td .n{font-family:var(--mono); color:var(--faint);}
+
+    .reveal pre{width:100%; box-shadow:none; font-size:.6rem; margin:0;}
+    .reveal pre code{border-radius:14px; padding:1.4rem 1.6rem; background:#0B1120 !important; border:1px solid var(--border); max-height:none; line-height:1.55;}
+    .codecap{color:var(--muted); font:500 .76rem var(--mono); margin-top:.6rem;}
+
+    .quote{background:var(--surface); border:1px solid var(--border); border-left:4px solid var(--amber); border-radius:12px; padding:1rem 1.2rem; font-family:var(--mono); font-size:.6rem; color:var(--text); line-height:1.5; white-space:pre-wrap;}
+    .quote .k{color:var(--accent);} .quote .s{color:var(--income);}
+
+    .hero-q{font-weight:800; letter-spacing:-.03em; line-height:1.12; font-size:clamp(1.7rem,4.2vw,3.2rem); max-width:21ch;}
+    .hero-q .sig{display:block; margin-top:1.4rem; font:500 1rem var(--mono); color:var(--muted);}
+    .big-q{font-weight:800; letter-spacing:-.03em; line-height:1.1; font-size:clamp(1.9rem,5vw,3.8rem); max-width:18ch;}
+
+    .team{display:grid; grid-template-columns:repeat(5,1fr); gap:1rem; margin-top:1.4rem;}
+    .member{text-align:center;}
+    .ava{width:78px; height:78px; border-radius:50%; margin:0 auto .6rem; display:grid; place-items:center; font:800 1.5rem var(--sans); color:#0B1120; background:linear-gradient(135deg,var(--income),var(--accent));}
+    .member .nm{font-size:.78rem; font-weight:600;} .member .id{font:500 .6rem var(--mono); color:var(--faint); margin-top:.2rem;}
+
+    .mermaid{font-family:var(--sans)!important; width:100%;}
+    .arch-wrap{background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:1.4rem 1.6rem; display:grid; place-items:center; min-height:50vh; width:100%;}
+    .arch-wrap svg{max-height:56vh; height:auto; width:auto; max-width:100%;}
+
+    .bullets{list-style:none; padding:0; margin:0;}
+    .bullets li{padding:.3rem 0 .3rem 1.5rem; position:relative; color:var(--muted); font-size:.9rem; line-height:1.4;}
+    .bullets li::before{content:""; position:absolute; left:0; top:.85rem; width:8px; height:8px; border-radius:2px; background:var(--income);}
+    .bullets li b{color:var(--text);}
+
+    .flow{display:flex; align-items:stretch; gap:.7rem; flex-wrap:wrap;}
+    .node{flex:1; min-width:150px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:.9rem 1rem;}
+    .node .t{font-weight:700; font-size:.92rem;} .node .d{color:var(--muted); font-size:.74rem; margin-top:.25rem;}
+    .node.good{border-color:rgba(52,211,153,.5);} .node.warn{border-color:rgba(251,191,36,.5);} .node.fall{border-color:rgba(248,113,113,.45);}
+    .arrow{display:flex; align-items:center; color:var(--faint); font-size:1.4rem;}
+
+    .steps{counter-reset:s; display:grid; gap:.7rem;}
+    .step{display:grid; grid-template-columns:auto 1fr; gap:.9rem; align-items:start; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:.75rem 1rem;}
+    .step .no{counter-increment:s; font:800 1.1rem var(--mono); color:var(--amber); min-width:1.6rem;}
+    .step .no::before{content:counter(s);}
+    .step .tx{font-size:.86rem;} .step .tx b{color:var(--text);} .step .tx span{color:var(--muted);}
+
+    .bars{display:flex; flex-direction:column; gap:1rem; margin-top:.5rem;}
+    .bar-row{display:grid; grid-template-columns:11rem 1fr auto; align-items:center; gap:1rem; font:500 .98rem var(--mono);}
+    .bar-row .track{height:20px; background:var(--surface-2); border-radius:10px; overflow:hidden;}
+    .bar-row .fill{height:100%; border-radius:7px; background:linear-gradient(90deg,var(--accent),var(--income));}
+    .bar-row .val{color:var(--amber);}
+
+    .qr-wrap{display:flex; align-items:center; gap:2.2rem;}
+    #qrcode{background:#fff; padding:13px; border-radius:14px; line-height:0;}
+    #qrcode img,#qrcode canvas{display:block;}
+    .reveal .slide-number{font-family:var(--mono);}
+    .footer-tag{position:absolute; bottom:16px; left:5.5%; font:500 .6rem var(--mono); color:var(--faint); letter-spacing:.1em;}
+    .agenda{display:grid; grid-template-columns:repeat(2,1fr); gap:.7rem 2rem; margin-top:1rem;}
+    .agenda .it{display:flex; gap:.8rem; align-items:baseline; padding:.45rem 0; border-bottom:1px solid var(--border);}
+    .agenda .it .mm{font:700 .8rem var(--mono); color:var(--amber); min-width:3.4rem;}
+    .agenda .it .lb b{font-size:.95rem;} .agenda .it .lb span{color:var(--muted); font-size:.78rem;}
+    .tag{display:inline-block; font:600 .62rem var(--mono); color:var(--accent); border:1px solid var(--border); border-radius:6px; padding:.12rem .5rem; margin:.15rem .3rem .15rem 0; background:var(--surface);}
+  </style>
+</head>
+<body>
+<div class="reveal">
+  <div class="slides">
+
+    <!-- 1 · TITLE -->
+    <section>
+      <div class="slide-pad center">
+        <div class="brandbar" style="margin-bottom:2.2rem"><span class="dot"></span> BudgetBot</div>
+        <h1 class="display">From bank chaos to<br/><span class="income">AI insight</span> in 48&nbsp;hours.</h1>
+        <p class="tagline" style="margin-top:1.4rem">A Vietnamese AI bookkeeper. Upload a bank statement — it categorizes every transaction, summarizes spending, and coaches you. No manual logging.</p>
+        <hr class="rule" style="margin-top:2rem" />
+        <div class="meta-row"><span>Group&nbsp;4 · XBrain AWS Accelerator — W7 Capstone</span><span class="amber">20 · 06 · 2026</span></div>
+      </div>
+      <aside class="notes">
+        Chào cả nhà. Tên sản phẩm: BudgetBot — bookkeeper AI cho người Việt. 13 phút tới tôi sẽ kể cách team build một sản phẩm AI chạy production trong 48h — và quan trọng hơn, những quyết định kỹ thuật đằng sau. Không lý thuyết, toàn đồ thật, số thật. Mở bằng năng lượng, tự tin.
+      </aside>
+    </section>
+
+    <!-- 2 · TEAM -->
+    <section>
+      <div class="slide-pad center">
+        <span class="kicker">The team</span>
+        <h2>Group 4 — XBrain AWS Accelerator</h2>
+        <p class="muted">Phase 1 · Week 7 Capstone</p>
+        <div class="team">
+          <div class="member"><div class="ava">An</div><div class="nm">Ngô Nguyễn Trường An</div><div class="id">XB-DN26-019</div></div>
+          <div class="member"><div class="ava">Th</div><div class="nm">Phạm Hữu Tiến Thành</div><div class="id">XB-DN26-027</div></div>
+          <div class="member"><div class="ava">Tà</div><div class="nm">Nguyễn Phú Tài</div><div class="id">XB-DN26-072</div></div>
+          <div class="member"><div class="ava">Nh</div><div class="nm">Phan Hoàng Nhật</div><div class="id">XB-DN26-115</div></div>
+          <div class="member"><div class="ava">Ho</div><div class="nm">Nguyễn Văn Huy Hoàng</div><div class="id">XB-DN26-138</div></div>
+        </div>
+      </div>
+      <aside class="notes">5 người Group 4. Giới thiệu 10 giây, không đọc mã số. Có thể chỉ ai làm phần nào nếu muốn (BE / FE / infra / AI).</aside>
+    </section>
+
+    <!-- 3 · AGENDA -->
+    <section>
+      <div class="slide-pad center">
+        <span class="kicker">Roadmap · 15 phút</span>
+        <h2>Hôm nay anh chị sẽ thấy gì</h2>
+        <div class="agenda">
+          <div class="it"><span class="mm">2'</span><span class="lb"><b>The pain</b><br/><span>Vì sao không ai track chi tiêu</span></span></div>
+          <div class="it"><span class="mm">3'</span><span class="lb"><b>6 quyết định</b><br/><span>Kiến trúc trong giờ đầu tiên</span></span></div>
+          <div class="it"><span class="mm">4'</span><span class="lb"><b>The build</b><br/><span>Adapter · hybrid AI · dedup · async · security</span></span></div>
+          <div class="it"><span class="mm">3'</span><span class="lb"><b>Live demo</b><br/><span>Upload → phân loại → chat coach</span></span></div>
+          <div class="it"><span class="mm">2'</span><span class="lb"><b>Numbers + lessons</b><br/><span>Cost, test, 3 bài học</span></span></div>
+          <div class="it"><span class="mm">Q&amp;A</span><span class="lb"><b>Hỏi đáp</b><br/><span>Cost · adapter · vì sao không agentic</span></span></div>
+        </div>
+      </div>
+      <aside class="notes">Cho khán giả bản đồ. "3 phần: tại sao, xây thế nào, demo. Cuối cùng là số liệu và bài học." Giúp người nghe biết khi nào tới demo.</aside>
+    </section>
+
+    <!-- 4 · THE PAIN -->
+    <section>
+      <div class="slide-pad center">
+        <span class="kicker">Act 1 · The pain</span>
+        <h2 style="font-size:clamp(1.7rem,3.8vw,2.8rem)">Tháng trước tôi tiêu <span class="amber mono">800.000&nbsp;₫</span><br/>cho cà phê — mà không hề biết.</h2>
+        <div class="band" style="margin-top:1.6rem">
+          <span>Bank app: <b>47</b> transactions/tháng</span>
+          <span>Insight: <b class="expense">0</b></span>
+          <span><b>~70%</b> người VN không track chi tiêu</span>
+        </div>
+        <p class="muted" style="margin-top:1.2rem; max-width:44ch">Lý do duy nhất: lười nhập sổ tay. Sao kê chỉ là một danh sách thô — không phải sự thấu hiểu. Apps hiện có bắt bạn tự gõ từng dòng.</p>
+      </div>
+      <aside class="notes">Kể thật, chậm. 800k cà phê = cú móc cảm xúc, ai cũng thấy mình trong đó. 47 giao dịch nhưng 0 insight. 70% người Việt bỏ track vì lười nhập tay — đó là thị trường.</aside>
+    </section>
+
+    <!-- 5 · THE QUESTION -->
+    <section data-background-color="#131F38">
+      <div class="slide-pad center">
+        <span class="kicker">Act 1 · The question</span>
+        <p class="big-q">Nếu <span class="income">AI</span> làm bookkeeper<br/>thay tôi thì sao?</p>
+      </div>
+      <aside class="notes">Câu pivot. Dừng 2-3 giây sau khi nói. Đây là lời hứa của sản phẩm: bạn không nhập gì cả, AI làm hết.</aside>
+    </section>
+
+    <!-- 6 · PRODUCT OVERVIEW -->
+    <section>
+      <div class="slide-pad center">
+        <span class="kicker">The product</span>
+        <h2>Upload một lần — phần còn lại tự động.</h2>
+        <div class="cols cols-3" style="margin-top:1rem">
+          <div class="card"><div class="ic">INPUT · 4 cách</div><h3>Đưa dữ liệu vào</h3><p>CSV · Excel · PDF sao kê · ảnh chụp biên lai (Bedrock vision) · nhập tay nhanh.</p></div>
+          <div class="card"><div class="ic">AI · tự động</div><h3>Phân loại</h3><p>Mỗi giao dịch → 1 trong <b>10 danh mục</b> chuẩn. Tiếng Việt, merchant viết tắt.</p></div>
+          <div class="card"><div class="ic">OUTPUT · insight</div><h3>Hiểu tiền của bạn</h3><p>Tổng theo danh mục · cảnh báo ngân sách · <b>chat coach</b> streaming.</p></div>
+        </div>
+        <p class="muted sm" style="margin-top:1.1rem"><span class="amber mono">"Stop logging expenses by hand. Let AI do it."</span> — 10 danh mục: Food, Transport, Shopping, Bills, Entertainment, Health, Education, Salary, Transfer, Other.</p>
+      </div>
+      <aside class="notes">Giải thích sản phẩm trong 30s. Nhấn 4 input modes (đặc biệt ảnh biên lai = Bedrock vision, ấn tượng). 10 danh mục canonical. Output = insight + chat. Đây là cái sẽ demo.</aside>
+    </section>
+
+    <!-- 7 · DIVIDER -->
+    <section data-background-color="#131F38">
+      <div class="slide-pad center">
+        <span class="pill">Act 2 · The build</span>
+        <h1 class="display" style="margin-top:1.2rem; font-size:clamp(2.4rem,6.4vw,5.2rem)">48 hours.<br/><span class="amber">6 decisions.</span></h1>
+        <p class="muted" style="margin-top:1.2rem">Ship trong 48h nghĩa là quyết đúng từ sớm. Sáu quyết định kiến trúc trong giờ đầu — phần còn lại chỉ là thi công.</p>
+      </div>
+      <aside class="notes">Chuyển nhịp sang phần kỹ thuật. "Tốc độ đến từ quyết định sớm, không phải code nhanh."</aside>
+    </section>
+
+    <!-- 8 · 6 DECISIONS -->
+    <section>
+      <div class="slide-pad center">
+        <span class="kicker">Act 2 · 6 decisions</span>
+        <table class="dec">
+          <thead><tr><th>#</th><th>Decision</th><th>Chosen</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr><td class="n">1</td><td>Regex vs LLM</td><td class="choose">LLM + keyword fast-path</td><td class="why">Merchant VN viết tắt loạn — regex chết. Keyword match $0 cho rõ ràng, LLM cho ambiguous.</td></tr>
+            <tr><td class="n">2</td><td>Bedrock vs OpenAI</td><td class="choose">Bedrock</td><td class="why">AWS credit, data residency Singapore, IAM control — toàn bộ trong VPC.</td></tr>
+            <tr><td class="n">3</td><td>Sonnet vs Haiku</td><td class="choose">Claude Haiku 4.5</td><td class="why">$1 / $5 per 1M vs Sonnet $3 / $15 — <em>~3× rẻ hơn</em>, đủ tốt cho phân loại.</td></tr>
+            <tr><td class="n">4</td><td>Sync vs Async</td><td class="choose">Hybrid</td><td class="why">Sync &lt;1MB (UX tức thì); async S3→SQS→worker cho file lớn (scale-safe).</td></tr>
+            <tr><td class="n">5</td><td>Postgres vs DynamoDB</td><td class="choose">Postgres (DynamoDB ready)</td><td class="why"><span class="mono">GROUP BY category</span> tự nhiên trong SQL; adapter DynamoDB sẵn cho scale.</td></tr>
+            <tr><td class="n">6</td><td>Dedup chặt vs lỏng</td><td class="choose">Strict — 4 lớp</td><td class="why">Bank export hay trùng dòng; silent skip = mất tiền oan = bad UX.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <aside class="notes">Đừng đọc cả bảng. Highlight 3 dòng: #1 hybrid (cost), #3 Haiku 4.5 (KHÔNG Sonnet), #4 hybrid sync/async. Nói: "mỗi dòng là một trade-off có lý do" và mời đào sâu ở Q&A.</aside>
+    </section>
+
+    <!-- 9 · ARCHITECTURE (mermaid) -->
+    <section>
+      <div class="slide-pad center">
+        <span class="kicker">Act 2 · Architecture</span>
+        <h2 style="font-size:1.4rem; margin-bottom:.5rem">One codebase, swappable backends — <span class="amber">factory.py</span> chọn theo env.</h2>
+        <div class="arch-wrap">
+          <pre class="mermaid">
+flowchart LR
+  FE["Frontend<br/>React + Cognito"] --> API["FastAPI<br/>JWT · rate-limit"]
+  API --> SVC["handlers / services<br/>business logic"]
+  SVC --> F{{"factory.py<br/>env to impl"}}
+  F --> AI["AI<br/>Bedrock or Local"]
+  F --> DB[("5 DB adapters")]
+  F --> ST["Storage<br/>S3 or local"]
+  F --> PDF["PDF/OCR<br/>Textract or stub"]
+  AI --> BR["Bedrock<br/>Haiku 4.5"]
+  PDF --> TX["Textract"]
+  API -. "enqueue larger than 1MB" .-> SQS["SQS + DLQ"]
+  SQS --> W["Fargate worker"]
+  W --> SVC
+</pre>
+        </div>
+      </div>
+      <aside class="notes">"Mọi thứ chảy qua factory.py — business logic không biết backend nào đang chạy." Chỉ vào nhánh: 5 DB, 2 AI, 2 PDF, 2 storage. Async path ở dưới (SQS→worker). Đây là xương sống của 'runtime-agnostic'.</aside>
+    </section>
+
+    <!-- 10 · ADAPTER CODE -->
+    <section>
+      <div class="slide-pad center">
+        <span class="kicker">Act 2 · The pattern</span>
+        <pre><code class="language-python" data-trim data-noescape>def make_ai():
+    """AI categorizer: bedrock (Converse) | local (rule-based, offline)."""
+    if config.ai_backend == "bedrock":
+        return ai.BedrockAI(region=config.aws_region, model_id=config.ai_model_id)
+    if config.ai_backend == "local":
+        return ai.LocalAI()                       # offline · $0 · rule-based
+
+def make_userstore():
+    """sqlite | postgres | dynamodb | documentdb | mysql — chosen from env."""
+    backend = config.resolved_db_backend
+    if backend == "postgres":  return userstore.PostgresUserStore(url=...)
+    if backend == "sqlite":    return userstore.SQLiteUserStore(db_path=...)
+    if backend == "dynamodb":  return userstore.DynamoDBUserStore(table_name=...)
+    # + documentdb, mysql … same interface, swapped by ONE env var
+</code></pre>
+        <p class="codecap">5 DB · 2 AI · 2 PDF · 2 storage — <span class="amber">đổi bằng 1 env flag</span>, không sửa code, không vendor lock-in. Test local SQLite+LocalAI ($0), deploy prod đổi 1 biến.</p>
+      </div>
+      <aside class="notes">Để engineer đọc 5 giây. "Toàn bộ bí mật: 1 file, đọc env, trả implementation. handlers.py chỉ phụ thuộc interface → test cực dễ với stub local." Đây là lý do build nhanh mà vẫn deploy được prod.</aside>
+    </section>
+
+    <!-- 11 · HYBRID AI FLOW -->
+    <section>
+      <div class="slide-pad center">
+        <span class="kicker">Act 2 · Hybrid AI</span>
+        <h2 style="font-size:1.35rem; margin-bottom:.9rem">Không phải mọi dòng đều cần LLM.</h2>
+        <div class="flow">
+          <div class="node good"><div class="t">1 · Keyword fast-path</div><div class="d">Merchant rõ ràng (Highlands, GRAB, EVN…) → khớp tức thì. <b style="color:var(--income)">$0 · offline · ~65%</b></div></div>
+          <div class="arrow">→</div>
+          <div class="node warn"><div class="t">2 · Bedrock Converse</div><div class="d">Chỉ dòng <b>mơ hồ</b> mới gọi LLM. Batch 10 dòng/lần, JSON-only, prompt cache.</div></div>
+          <div class="arrow">→</div>
+          <div class="node fall"><div class="t">3 · LocalAI fallback</div><div class="d">Bedrock lỗi/throttle? → tự rớt về rule-based. <b>Upload không bao giờ chết.</b></div></div>
+        </div>
+        <p class="muted sm" style="margin-top:1.1rem">Hệ quả: ~65% dòng xử lý <b class="income">miễn phí</b>, chỉ ~35% chạm LLM — và service vẫn sống kể cả khi Bedrock sập.</p>
+      </div>
+      <aside class="notes">Đây là quyết định #1 thành hình. 3 tầng: keyword (nhanh, free) → Bedrock (chỉ ambiguous) → fallback Local (chống lỗi). Nhấn: resilience + cost. "AI tốt nhất là AI bạn không phải gọi."</aside>
+    </section>
+
+    <!-- 12 · PROMPT DESIGN -->
+    <section>
+      <div class="slide-pad center">
+        <span class="kicker">Act 2 · Prompt design</span>
+        <h2 style="font-size:1.3rem; margin-bottom:.6rem">Single-shot · few-shot · JSON-only. <span class="muted" style="font-weight:500;font-size:.9rem">(no multi-step)</span></h2>
+        <div class="quote"><span class="k">SYSTEM</span>  Vietnamese transaction categorizer → exactly one of:
+  Food, Transport, Shopping, Bills, Entertainment, Health, …
+  Highlands, GRAB, Shopee, EVN known. Respond ONLY JSON:
+  [{"idx": int, "category": "&lt;Category&gt;", "confidence": "high|medium|low"}]
+
+<span class="s">FEW-SHOT</span>  1. HIGHLANDS COFFEE BUI VIEN | -65000   → Food / high
+  2. SALARY JUNE 2026 | 28000000          → Salary / high
+  3. EVN HCMC TIEN DIEN T5 | -850000       → Bills / high</div>
+        <p class="codecap">Versioned (<span class="mono">PROMPT_VERSION</span>) · batch 10 rows/call · system + few-shot tách riêng để <span class="amber">Bedrock prompt-cache</span> tái dùng (giảm token).</p>
+      </div>
+      <aside class="notes">"JSON-only, một lần gọi, không vòng lặp." Few-shot dạy merchant VN. cachePoint tách phần system tĩnh (cache) khỏi dữ liệu động → rẻ hơn mỗi lần gọi. Prompt được version hoá để A/B.</aside>
+    </section>
+
+    <!-- 13 · DEDUP -->
+    <section>
+      <div class="slide-pad center">
+        <span class="kicker">Act 2 · Data integrity</span>
+        <h2 style="font-size:1.35rem; margin-bottom:.8rem">Dedup 4 lớp — vì sao bank export hay trùng.</h2>
+        <div class="steps" style="max-width:92%">
+          <div class="step"><span class="no"></span><span class="tx"><b>File hash</b> <span>— upload đúng file cũ → chặn ngay (DuplicateFileError).</span></span></div>
+          <div class="step"><span class="no"></span><span class="tx"><b>Transaction fingerprint</b> <span>— amount + mô tả chuẩn hoá (không tính ngày), scope theo user.</span></span></div>
+          <div class="step"><span class="no"></span><span class="tx"><b>Date tolerance</b> <span>— cùng giao dịch lệch 1–2 ngày giữa các lần export → nhận ra.</span></span></div>
+          <div class="step"><span class="no"></span><span class="tx"><b>Manual warn</b> <span>— nhập tay trùng → cảnh báo mềm, người dùng tự quyết.</span></span></div>
+        </div>
+        <p class="muted sm" style="margin-top:.9rem">Mọi lớp <b>scope theo <span class="mono">user_id</span></b> — 2 người upload cùng file vẫn độc lập. Silent skip = bad UX, nên ta cảnh báo thay vì âm thầm bỏ.</p>
+      </div>
+      <aside class="notes">Quyết định #6. Giải thích vì sao quan trọng: bank export tháng này chồng tháng trước, dễ nhân đôi chi tiêu → sai insight. 4 lớp, đều theo user. Nhấn 'manual warn' = tôn trọng người dùng.</aside>
+    </section>
+
+    <!-- 14 · ASYNC PIPELINE -->
+    <section>
+      <div class="slide-pad center">
+        <span class="kicker">Act 2 · Scale</span>
+        <h2 style="font-size:1.3rem; margin-bottom:.5rem">File lớn không block UI — async qua SQS.</h2>
+        <div class="split">
+          <div class="arch-wrap" style="min-height:36vh">
+            <pre class="mermaid">
+flowchart LR
+  U["File larger than 1MB"] --> API["POST /enqueue"]
+  API --> S3["S3 (raw)"]
+  API --> Q["SQS (QUEUED)"]
+  Q --> W["Fargate worker<br/>process_job · idempotent"]
+  W --> DB[("PostgreSQL")]
+  W -. "on failure" .-> DLQ["DLQ"]
+  FE["Frontend"] -. "poll /job-status" .-> API
+</pre>
+          </div>
+          <ul class="bullets">
+            <li><b>Sync</b> cho file nhỏ — phản hồi tức thì.</li>
+            <li><b>Async</b> cho file lớn — không treo request.</li>
+            <li>Worker <b>idempotent</b> → SQS gửi lại vẫn an toàn.</li>
+            <li>Lỗi độc → <b>DLQ</b>, không kẹt hàng đợi.</li>
+            <li>FE poll <span class="mono">/job-status</span>: QUEUED→PROCESSING→COMPLETED.</li>
+          </ul>
+        </div>
+      </div>
+      <aside class="notes">Quyết định #4. "UX nhỏ cần tức thì; file lớn cần an toàn." Worker idempotent là chìa khoá — at-least-once delivery của SQS không gây nhân đôi. DLQ để debug poison message.</aside>
+    </section>
+
+    <!-- 15 · SECURITY & MULTI-TENANCY -->
+    <section>
+      <div class="slide-pad center">
+        <span class="kicker">Act 2 · Security</span>
+        <h2 style="font-size:1.3rem; margin-bottom:.8rem">Multi-tenant ngay từ đầu — không phải afterthought.</h2>
+        <div class="cols cols-2">
+          <div class="card"><h3>Identity</h3><p><b>Cognito</b> User Pool · idToken JWT verify <b>server-side</b> qua JWKS (RS256, kiểm iss/aud/token_use). Có <b>guest mode</b> + cờ <span class="mono">REQUIRE_AUTH</span>.</p></div>
+          <div class="card"><h3>Isolation</h3><p>Mọi truy vấn scope theo <span class="mono">user_id = Cognito sub</span>. Dedup, catalog, cost — đều per-user. Hai người không thấy data của nhau.</p></div>
+          <div class="card"><h3>Network</h3><p>API trong <b>private subnet</b>, ra AWS qua <b>VPC endpoints</b> (PrivateLink). WAFv2 trước ALB + CloudFront. Secrets ở Secrets Manager.</p></div>
+          <div class="card"><h3>Abuse control</h3><p><b>Rate limiting</b> per-user: ElastiCache <b>Valkey</b> phân tán (đa task) + in-memory local, <b>fail-open</b> nếu cache sập.</p></div>
+        </div>
+      </div>
+      <aside class="notes">Cho audience business/security: "không phải prototype hở. JWT verify thật ở server, không tin client. Per-user isolation. Rate limit phân tán." Đây là điểm tin cậy cho PM/security.</aside>
+    </section>
+
+    <!-- 16 · DEMO -->
+    <section data-background-color="#131F38">
+      <div class="slide-pad center">
+        <span class="pill" style="color:var(--income); border-color:rgba(52,211,153,.5)">● Live demo · 3 phút</span>
+        <h1 class="display" style="margin-top:1rem; font-size:clamp(2rem,5.4vw,4.2rem)">Để máy làm sổ.</h1>
+        <div class="steps" style="max-width:80%; margin-top:1.2rem">
+          <div class="step"><span class="no"></span><span class="tx"><b>Upload</b> <span>một sao kê ngân hàng (CSV) — vài chục giao dịch.</span></span></div>
+          <div class="step"><span class="no"></span><span class="tx"><b>Auto-categorize</b> <span>→ dashboard: chi theo danh mục, cảnh báo ngân sách.</span></span></div>
+          <div class="step"><span class="no"></span><span class="tx"><b>Chat coach</b> <span>: "Tháng này tôi tiêu nhiều nhất vào đâu?" + đặt ngân sách bằng câu nói.</span></span></div>
+        </div>
+        <p class="muted sm" style="margin-top:1rem">Fallback nếu wifi yếu: ảnh chụp dashboard + chat trong <span class="mono">docs/diagrams/</span> / repo. Mọi số liệu là dữ liệu thật.</p>
+      </div>
+      <aside class="notes">DEMO 3 PHÚT. Trình tự: (1) upload CSV mẫu, (2) chỉ dashboard donut + cảnh báo vượt ngân sách, (3) chat: hỏi 1 câu + "đặt ngân sách ăn uống 3 triệu" để show tool-use streaming. Nếu mạng yếu → mở ảnh fallback. Canh giờ: nếu quá 3', cắt phần chat.</aside>
+    </section>
+
+    <!-- 17 · THE NUMBERS -->
+    <section>
+      <div class="slide-pad center">
+        <span class="kicker">Act 3 · The numbers</span>
+        <div class="stat-grid">
+          <div class="stat"><div class="num">5,445</div><div class="lbl">LOC backend (src/)</div><div class="sub">+1,674 tests</div></div>
+          <div class="stat"><div class="num">113<span class="muted" style="font-size:.5em"> / 78%</span></div><div class="lbl">tests pass · coverage</div><div class="sub">11 skipped</div></div>
+          <div class="stat"><div class="num">5</div><div class="lbl">DB adapters</div><div class="sub">1 env flag</div></div>
+          <div class="stat"><div class="num">20</div><div class="lbl">Terraform modules</div><div class="sub">ECS·RDS·SQS·Valkey…</div></div>
+        </div>
+        <div class="band" style="margin-top:1.4rem">
+          <span><b class="amber mono">~$0.017</b> / 1,000 transactions</span>
+          <span><b class="mono">1.2s</b> avg latency · batch 10/call</span>
+          <span><b class="mono">4</b> input modes</span>
+        </div>
+      </div>
+      <aside class="notes">4 số lớn = sản phẩm thật, không phải slide. Test + coverage cho engineer. Cost + latency cho PM. "20 Terraform modules" = deploy được thật, không phải localhost demo.</aside>
+    </section>
+
+    <!-- 18 · COST + INSTRUMENTATION -->
+    <section>
+      <div class="slide-pad center">
+        <span class="kicker">Act 3 · Cost-aware</span>
+        <h2 style="font-size:1.35rem">Cost AI thấp hơn dự kiến — và đo được, không đoán.</h2>
+        <div class="bars" style="max-width:100%; margin-top:.9rem">
+          <div class="bar-row"><span>Keyword $0</span><span class="track"><span class="fill" style="width:65%; background:var(--income)"></span></span><span class="val income">65% rows · offline</span></div>
+          <div class="bar-row"><span>Bedrock Haiku</span><span class="track"><span class="fill" style="width:35%"></span></span><span class="val">35% rows · ~$0.017/1k</span></div>
+          <div class="bar-row"><span>Prompt cache</span><span class="track"><span class="fill" style="width:22%; background:var(--amber)"></span></span><span class="val">system + few-shot reused</span></div>
+        </div>
+        <div class="band" style="margin-top:1.3rem">
+          <span>Đo thật: token + USD/flow → <b class="mono">CloudWatch BudgetBot/W7</b></span>
+          <span>Surface: <b class="mono">/admin/cost-report</b> · <b class="mono">/admin/usage-stats</b></span>
+        </div>
+        <p class="muted sm" style="margin-top:.8rem">Fixed infra: RDS db.t3.micro ~$13/mo · S3·SQS·worker free-tier @ demo. <span class="amber">Cost-aware từ ngày 0</span> — không phải tối ưu về sau.</p>
+      </div>
+      <aside class="notes">Câu chuyện ngược đời: tưởng AI đắt, hoá ra keyword nuốt 65% rows ở $0. QUAN TRỌNG: cost được instrument thật — mỗi flow ghi token+USD vào CloudWatch, có endpoint /admin/cost-report. Không phải con số ước; đo được.</aside>
+    </section>
+
+    <!-- 19 · TESTING & QUALITY -->
+    <section>
+      <div class="slide-pad center">
+        <span class="kicker">Act 3 · Quality</span>
+        <h2 style="font-size:1.3rem; margin-bottom:.8rem">Build nhanh ≠ build ẩu.</h2>
+        <div class="cols cols-3">
+          <div class="card"><div class="lead">113</div><h3>tests pass</h3><p>1,674 LOC test · 78% coverage · 11 skip (cần AWS).</p></div>
+          <div class="card"><div class="lead">5×</div><h3>store-parity</h3><p>Cùng một bộ test chạy qua <b>cả 5 DB adapters</b> — interface giống nhau được chứng minh.</p></div>
+          <div class="card"><div class="lead">CI</div><h3>ruff + mypy</h3><p>Lint + type-check sạch toàn repo. Comment/docstring review-friendly.</p></div>
+        </div>
+        <p class="muted sm" style="margin-top:1rem">Test ép backend local (SQLite/LocalAI) — chạy offline, không chạm AWS, không tốn tiền.</p>
+      </div>
+      <aside class="notes">Cho engineer audience: "48h nhưng có test thật." Store-parity là điểm nhấn: cùng test suite chạy qua 5 DB → adapter pattern không chỉ đẹp lý thuyết mà được verify. ruff+mypy clean.</aside>
+    </section>
+
+    <!-- 20 · 3 LESSONS -->
+    <section>
+      <div class="slide-pad center">
+        <span class="kicker">Act 4 · 3 lessons</span>
+        <div class="cols cols-3">
+          <div class="card"><div class="lead">01</div><h3>AI ẩn là AI tốt</h3><p>User chỉ thấy "không phải nhập sổ" — không biết Bedrock chạy phía sau. Magic, không phải máy móc.</p></div>
+          <div class="card"><div class="lead">02</div><h3>Adapter = tự do</h3><p>5 DB + 2 AI + 2 PDF đổi bằng 1 env flag. Test local $0, deploy prod không sửa dòng nào.</p></div>
+          <div class="card"><div class="lead">03</div><h3>Cost-aware ngày 0</h3><p>Haiku + keyword hybrid + prompt cache = <span class="amber mono">~$0.017/1k tx</span>. Đừng bắt đầu bằng Sonnet.</p></div>
+        </div>
+        <hr class="rule" />
+        <p class="muted sm"><b class="amber">Nếu làm lại:</b> merchant catalog cache — skip Bedrock cho merchant đã thấy ≥3 lần (confidence ≥0.8) → tiết kiệm thêm 70–80% LLM calls sau 1–2 tháng.</p>
+      </div>
+      <aside class="notes">3 takeaway chính. Câu "nếu làm lại" cho thấy team nghĩ về roadmap, khiêm tốn. Đây là phần khán giả nhớ lâu nhất.</aside>
+    </section>
+
+    <!-- 21 · HERO QUOTE -->
+    <section data-background-color="#131F38">
+      <div class="slide-pad center">
+        <p class="hero-q">You don't need <span class="muted">agentic AI</span><br/>to build something people use.<br/><br/>Solve the <em>right</em> pain · with the <em>right</em> model · at the <em>right</em> cost.
+          <span class="sig">— Group 4 · BudgetBot</span></p>
+      </div>
+      <aside class="notes">Câu duy nhất nhắc "agentic" — counter-narrative. Nói chậm, dừng sau "people use". Đây là punchline cả talk: đúng bài toán, đúng model, đúng chi phí.</aside>
+    </section>
+
+    <!-- 22 · GITHUB + QR -->
+    <section>
+      <div class="slide-pad center">
+        <span class="kicker">Resources</span>
+        <div class="qr-wrap">
+          <div id="qrcode"></div>
+          <div>
+            <h2 style="font-size:1.7rem; margin-bottom:.3rem">github.com/<span class="amber">nghiadaulau</span>/budgetbot</h2>
+            <p class="muted sm">Quét QR → source, README, diagrams.</p>
+            <ul class="bullets" style="margin-top:.7rem">
+              <li>Quick-start: <b class="mono">clone → make install → make run</b> (~2')</li>
+              <li>Architecture: <b class="mono">docs/diagrams/</b> · slides: <b class="mono">docs/slides/</b></li>
+              <li>Built by Group 4 · XBrain AWS Accelerator · June 2026</li>
+            </ul>
+          </div>
+        </div>
+        <p class="footer-tag">Stop logging expenses by hand. Let AI do it.</p>
+      </div>
+      <aside class="notes">"Tất cả open source — quét QR ngay." Để slide lâu để khán giả kịp quét.</aside>
+    </section>
+
+    <!-- 23 · Q&A -->
+    <section data-background-color="#131F38">
+      <div class="slide-pad center">
+        <div class="brandbar" style="margin-bottom:1.8rem"><span class="dot"></span> BudgetBot</div>
+        <h1 class="display" style="font-size:clamp(2.4rem,6.4vw,5rem)">Sẵn sàng<br/><span class="income">hỏi đáp.</span></h1>
+        <p class="muted" style="margin-top:1.2rem; max-width:44ch">Đặc biệt về <b class="amber">cost</b>, <b class="amber">adapter pattern</b>, hoặc tại sao chúng tôi <b>KHÔNG</b> đi hướng agentic.</p>
+        <hr class="rule" style="margin-top:1.8rem" />
+        <div class="meta-row"><span>Group 4 · XBrain AWS Accelerator</span><span class="amber">github.com/nghiadaulau/budgetbot</span></div>
+      </div>
+      <aside class="notes">Chuẩn bị sẵn 3 câu trả lời: (1) cost ~$0.017/1k đo qua CloudWatch, (2) adapter — demo factory.py, (3) "không agentic vì bài toán single-shot là đủ; thêm agent = thêm chi phí + lỗi, không thêm giá trị cho user."</aside>
+    </section>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@gh-pages/qrcode.min.js"></script>
+
+<script>
+  function mermaidTheme(){ return document.documentElement.getAttribute('data-theme') === 'light' ? 'default' : 'dark'; }
+  if (window.mermaid) {
+    mermaid.initialize({ startOnLoad:false, theme:mermaidTheme(), securityLevel:'loose',
+      flowchart:{ curve:'basis', htmlLabels:true, useMaxWidth:true },
+      themeVariables:{ fontFamily:'Inter, sans-serif', fontSize:'17px' } });
+  }
+  // Render mermaid only when its slide becomes visible (reveal hides slides → 0-size bug).
+  function renderMermaid(scope){
+    if (!window.mermaid) return;
+    const root = scope || document;
+    const nodes = Array.prototype.slice.call(root.querySelectorAll('.mermaid')).filter(n => !n.getAttribute('data-processed'));
+    if (nodes.length) { try { mermaid.run({ nodes }); } catch(e){ console.warn('mermaid', e); } }
+  }
+
+  const deck = new Reveal({
+    hash:true, slideNumber:'c/t', controls:true, progress:true, center:false,
+    transition:'fade', transitionSpeed:'fast', autoSlide:0, hideInactiveCursor:true,
+    width:1280, height:720, margin:0.02, minScale:0.2, maxScale:1.6,
+    plugins:[RevealHighlight, RevealNotes]
+  });
+  deck.initialize().then(() => {
+    renderMermaid(deck.getCurrentSlide());   // current slide on load
+    try {
+      new QRCode(document.getElementById('qrcode'), {
+        text:'https://github.com/nghiadaulau/budgetbot', width:190, height:190,
+        colorDark:'#0F172A', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M });
+    } catch(e){}
+  });
+  deck.on('slidechanged', e => renderMermaid(e.currentSlide));
+  deck.on('ready', e => renderMermaid(e.currentSlide));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 't' || e.key === 'T') {
+      const r = document.documentElement;
+      r.setAttribute('data-theme', r.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+    }
+  });
+  // F fullscreen · S speaker · ESC overview · B blackout · ←/→ navigate — built into reveal.js
+</script>
+</body>
+</html>
