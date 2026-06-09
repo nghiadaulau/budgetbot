@@ -1,84 +1,122 @@
 # BudgetBot — Infrastructure (Terraform)
 
-Deploys BudgetBot to AWS:
+Provisions the full BudgetBot stack on AWS. The same container image runs the API
+and the async worker; everything is private-by-default behind WAF + ALB / CloudFront.
 
 ```
-                 budgetbot.xbrain26hackathon269.software            api.budgetbot.xbrain26hackathon269.software
-                          │                                       │
-                    ┌─────▼──────┐                          ┌─────▼─────┐
-   Route53  ───────▶│ CloudFront │── OAC ──▶ S3 (React)     │    ALB    │ (HTTPS, ACM)
-                    └────────────┘                          └─────┬─────┘
-                                                                  │
-                                                         ┌────────▼────────┐
-                                                         │  ECS Fargate    │── Bedrock (Haiku)
-                                                         │  (FastAPI)      │
-                                                         └────────┬────────┘
-                                                                  │ SQLite
-                                                              ┌───▼───┐
-                                                              │  EFS  │ (persistent)
-                                                              └───────┘
+        app (apex)                                   api.
+  budgetbot.xbrain26hackathon269.software   api.budgetbot.xbrain26hackathon269.software
+            │                                             │
+       ┌─────▼──────┐  WAF                          ┌──────▼──────┐  WAF
+       │ CloudFront │── OAC ──▶ S3 (React SPA)      │     ALB     │ (HTTPS, ACM)
+       └────────────┘                               └──────┬──────┘
+                                                           │  (private subnets)
+                                              ┌────────────▼─────────────┐
+                                              │   ECS Fargate — API       │──┐
+                                              │   (FastAPI, autoscaled)   │  │
+                                              └────────────┬─────────────┘  │  VPC endpoints
+                                                           │                │  (PrivateLink):
+   ┌────────────────┐   SQS   ┌──────────────────────┐    │                ├─▶ Bedrock (Haiku 4.5)
+   │ ECS Fargate —   │◀────────│  SQS jobs (+ DLQ)    │◀───┘                ├─▶ Textract
+   │ worker          │         └──────────────────────┘                     ├─▶ ECR / Secrets / Logs
+   └───────┬─────────┘                                                      └─▶ SQS / STS / S3 (gw)
+           │
+   ┌───────▼────────┐   ┌───────────────────┐   ┌──────────────┐   ┌──────────────┐
+   │ RDS PostgreSQL │   │ ElastiCache Valkey │   │ S3 (uploads) │   │ Cognito      │
+   │ (transactions) │   │ (rate limiting)    │   │ raw files    │   │ (JWT auth)   │
+   └────────────────┘   └───────────────────┘   └──────────────┘   └──────────────┘
+
+   Observability: CloudWatch logs + custom metrics → 8 alarms → SNS (email).
 ```
 
-- **Backend**: 1 Fargate task (FastAPI/uvicorn) behind an HTTPS ALB. SQLite lives
-  on **EFS** so data survives restarts/redeploys. AI via **Bedrock** (task role).
-- **Frontend**: React build on **S3 + CloudFront** (private bucket, OAC).
-- **TLS**: ACM — regional cert for the ALB, us-east-1 cert for CloudFront, both
+See the rendered diagrams in [`../docs/diagrams/`](../docs/diagrams/)
+(infra PNG/PDF + Mermaid sources).
+
+## Components
+
+- **Frontend** — React build on **S3 + CloudFront** (private bucket, OAC), fronted by
+  a **WAFv2** web ACL. `index.html` is served `no-cache`; hashed assets are immutable.
+- **API** — **ECS Fargate** service (FastAPI/uvicorn) behind an HTTPS **ALB** (+ its own
+  WAFv2 ACL). Runs in **private subnets**; reaches AWS APIs through **VPC endpoints**
+  (PrivateLink) — no NAT egress for AWS traffic.
+- **Worker** — a second ECS Fargate service that polls **SQS** for async uploads
+  (`/enqueue`), with a **dead-letter queue** for poison messages.
+- **Database** — **RDS PostgreSQL**; credentials live in **Secrets Manager** and are
+  injected into the task via `DB_SECRET_NAME` (no plaintext in env/state).
+- **Rate limiting** — **ElastiCache (Valkey)** replication group; the app fails open
+  if the cache is unreachable.
+- **AI / OCR** — **Bedrock** (Claude Haiku 4.5) for categorization + chat, **Textract**
+  for PDF/image receipts — both reached over interface endpoints.
+- **Auth** — **Cognito User Pool**; the API verifies the JWT `sub` server-side
+  (`REQUIRE_AUTH`).
+- **Scaling** — **Application Auto Scaling** (CPU target tracking) on both ECS services,
+  within `[backend_min, backend_max]`.
+- **Observability** — CloudWatch logs + custom metrics, **8 metric alarms** → **SNS**
+  (set `alarm_email` to subscribe).
+- **TLS** — ACM: a regional cert for the ALB, a us-east-1 cert for CloudFront, both
   DNS-validated in Route53.
-- **State**: S3 with **native lockfile** (`use_lockfile`, no DynamoDB).
+- **State** — S3 backend with **native lockfile** (`use_lockfile`, no DynamoDB).
 - Everything uses your local **`default`** AWS profile.
 
 ## Prerequisites
+
 - Terraform **≥ 1.10**, AWS CLI, Docker, pnpm.
-- The Route53 public hosted zone **`budgetbot.xbrain26hackathon269.software`** already exists.
-- **Bedrock model access** enabled for Claude 3.5 Haiku in `ap-southeast-1`
-  (Console → Bedrock → Model access). If it's only available via the APAC
-  inference profile, set `ai_model_id = "apac.anthropic.claude-3-5-haiku-20241022-v1:0"`
-  in `terraform.tfvars`.
+- A Route53 public hosted zone **`budgetbot.xbrain26hackathon269.software`** already
+  exists (the apex serves the app; `api.` serves the API). Override via
+  `domain_root` / `app_subdomain` / `api_subdomain` in `terraform.tfvars`.
+- **Bedrock model access** enabled for the configured `ai_model_id` in the target
+  region (Console → Bedrock → Model access). To run without Bedrock, set
+  `ai_backend = "local"` / `pdf_backend = "local"`.
 
 ## Deploy (first time)
 
 ```bash
 cd terraform
 
-# 1) Create the state bucket (one-time; backend can't self-bootstrap)
+# 1) Create the S3 state bucket (one-time; the backend can't self-bootstrap)
 ./bootstrap.sh
 
 # 2) Provision all infrastructure
 terraform init
-terraform apply            # ~10-15 min (CloudFront + ACM validation)
+terraform apply            # ~15-20 min (CloudFront + ACM validation, RDS)
 
-# 3) Build & publish app code (backend image + frontend build)
+# 3) Build & publish app code (backend image + worker + frontend build)
 ./deploy.sh all
 ```
 
 Then open **https://budgetbot.xbrain26hackathon269.software**. The API is at
 **https://api.budgetbot.xbrain26hackathon269.software** (e.g. `/health`).
 
-> First `apply` provisions empty ECR/S3, so the ECS task won't be healthy until
-> `./deploy.sh` pushes the image. That's expected.
+> First `apply` provisions an empty ECR + S3, so the ECS tasks won't be healthy
+> until `./deploy.sh` pushes the image and publishes the frontend. That's expected.
 
 ## Day-to-day
+
 ```bash
-./deploy.sh backend     # rebuild + roll the API
+./deploy.sh backend     # rebuild image + roll the API and worker services
 ./deploy.sh frontend    # rebuild + publish the UI (+ CloudFront invalidation)
 terraform apply         # infra changes only
 ```
 
 ## Notes & trade-offs
-- **Why Fargate + EFS, not Lambda/RDS?** Only the SQLite store implements the full
-  v0.2 interface (filtered list, partial update, dedup, cost log, migrations).
-  Fargate + EFS runs the current code unchanged with persistent data. To move to
-  Lambda+DynamoDB or RDS later, implement those store methods first.
-- **Single task / `desired_count = 1`** — SQLite is single-writer; don't scale the
-  service horizontally without switching the DB backend.
-- **Cost (rough, ap-southeast-1):** Fargate 0.5vCPU/1GB ~\$18/mo, ALB ~\$18/mo,
-  EFS pennies, CloudFront/S3/Route53 negligible at demo traffic, Bedrock per-use.
-  Run `python ../scripts/cost_estimate.py --transactions 1000` for AI cost.
-- **Set `ai_backend=local` / `pdf_backend=local`** in `terraform.tfvars` to run
-  without Bedrock (rule-based categorization, stub receipt extraction).
-- **Teardown:** `./deploy.sh` artifacts aside, `terraform destroy` removes
-  everything. The state bucket (created by `bootstrap.sh`) is not managed by
-  Terraform — delete it manually if you want it gone.
-```
+
+- **Postgres, not SQLite/EFS.** The store backend is RDS PostgreSQL, so the API can
+  scale horizontally — autoscaling runs `desired_count` ≥ 1 tasks behind the ALB.
+  The local/dev default is still SQLite (`USERSTORE_BACKEND=sqlite`); the backend is
+  runtime-agnostic and flips by env var.
+- **Private egress.** Interface endpoints (Bedrock, Textract, ECR, Secrets Manager,
+  CloudWatch Logs, SQS, STS) + an S3 gateway endpoint keep AWS traffic off the public
+  internet and avoid NAT costs.
+- **Async pipeline.** Large uploads go `/enqueue → S3 + SQS → worker → /job-status`;
+  the worker is idempotent so redeliveries are safe, and failures land in the DLQ.
+- **Cost (rough, ap-southeast-1):** Fargate (API + worker), ALB, RDS `db.t3.micro`,
+  one-node Valkey, CloudFront/S3/Route53, WAF, and VPC interface endpoints (hourly
+  each) — on the order of **\$0.20–0.30/hour** at idle demo scale, plus Bedrock
+  per-use. Run `python ../scripts/cost_estimate.py --transactions 1000` for AI cost.
+- **Teardown:** `terraform destroy` removes the managed stack. The state bucket
+  (created by `bootstrap.sh`) is **not** managed by Terraform — delete it manually if
+  you want it gone. Empty the S3 buckets first if a bucket isn't force-destroyable.
+
+```bash
 terraform destroy
 ```
