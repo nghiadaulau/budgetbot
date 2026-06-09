@@ -1,0 +1,28 @@
+sequenceDiagram
+  autonumber
+  actor U as Người dùng
+  participant FE as Chat widget
+  participant API as FastAPI /chat
+  participant H as handlers.handle_chat
+  participant SVC as services.build_summary
+  participant DB as PostgreSQL
+  participant BOT as ChatbotAI
+  participant BR as Bedrock (Haiku 4.5)
+
+  U->>FE: "Đặt ngân sách Ăn uống 30M, Mua sắm 40M"
+  FE->>API: POST /chat (SSE, Bearer JWT)
+  API->>API: verify JWT · enforce_rate_limit
+  API->>H: handle_chat(user_id, message, session)
+  H->>SVC: build_summary(month)
+  SVC->>DB: tổng chi theo danh mục
+  H->>DB: giao dịch gần đây + ngân sách + bộ nhớ hội thoại
+  H->>BOT: chat(context, tools=[set_budget])
+  BOT->>BR: converse_stream(system + context + tools)
+  BR-->>BOT: tool_use × N (set_budget) — nhiều block
+  loop Mỗi tool call
+    BOT->>DB: set_budget(category, amount)
+  end
+  BOT->>BR: converse_stream(tool results)
+  BR-->>FE: stream tokens trả lời (SSE)
+  H->>DB: cost_tracker ghi chi phí + cập nhật memory
+  FE-->>U: "Đã đặt: Ăn uống 30.000.000 ₫, Mua sắm 40.000.000 ₫"

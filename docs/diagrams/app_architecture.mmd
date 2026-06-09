@@ -1,0 +1,95 @@
+flowchart TB
+  classDef fe fill:#EAF4FF,stroke:#3b82f6,color:#0b2545;
+  classDef api fill:#E5F7EE,stroke:#10b981,color:#064e3b;
+  classDef logic fill:#FDE9F0,stroke:#db2777,color:#831843;
+  classDef adapt fill:#FFF8DB,stroke:#d97706,color:#7c2d12;
+  classDef bk fill:#E0F7FA,stroke:#0891b2,color:#0c4a6e;
+  classDef ext fill:#FCE4EC,stroke:#9333ea,color:#581c87;
+
+  subgraph FE["🖥️ Frontend — React 19 + Vite + TS (CloudFront/S3)"]
+    direction TB
+    pages["Pages: Dashboard · Giao dịch · Phân tích (Budgets) · Cài đặt"]
+    chatw["Chat widget (SSE streaming)"]
+    rq["React Query — useAllTransactions / useSummary / useBudgets / useSetBudget"]
+    apic["api client — authHeaders(X-User-Id + Bearer) · isMock()"]
+    pages --> rq --> apic
+    chatw --> apic
+  end
+  class FE,pages,chatw,rq,apic fe;
+
+  cog["☁️ Cognito User Pool — idToken (JWT)"]:::ext
+  apic -. "login / signup" .-> cog
+
+  subgraph API["⚙️ FastAPI app.py — routes only"]
+    direction TB
+    mw["strip_api_prefix · CORS"]
+    auth["_resolve_user_id → verify Cognito JWT (JWKS) → sub"]
+    rl["enforce_rate_limit"]
+    routes["/upload · /enqueue · /process · /transactions · /summary · /budgets · /chat · /job-status"]
+    mw --> auth --> rl --> routes
+  end
+  class API,mw,auth,rl,routes api;
+  apic == "HTTPS /api  (Bearer)" ==> mw
+
+  subgraph LOGIC["🧠 Business logic (keep out of app.py)"]
+    direction TB
+    handlers["handlers.py — orchestration · chat · jobs"]
+    services["services.py — process_csv/pdf · _classify_rows · build_summary · budgets · audit"]
+  end
+  class LOGIC,handlers,services logic;
+  routes --> handlers
+  routes --> services
+  handlers --> services
+
+  subgraph ADAPT["🔌 adapters/factory.py — backend chosen by env var"]
+    direction TB
+    ai["ai — BedrockAI ↔ LocalAI (hybrid keyword + fallback)"]
+    bot["chatbot — money-coach · set_budget tool · rolling memory"]
+    store["userstore — Postgres / SQLite / DynamoDB …"]
+    stor["storage — S3 / local"]
+    pdf["pdf_extractor — Textract"]
+    dedup["dedup — per-user file hash + fingerprint"]
+    idem["idempotency"]
+    cost["cost_tracker · metrics"]
+    rlm["ratelimit — Redis/Valkey · fail-open"]
+  end
+  class ADAPT,ai,bot,store,stor,pdf,dedup,idem,cost,rlm adapt;
+  services --> ai
+  services --> store
+  services --> stor
+  services --> pdf
+  services --> dedup
+  services --> idem
+  services --> cost
+  handlers --> bot
+  rl --> rlm
+
+  subgraph BK["🗄️ Backends / AWS services"]
+    direction TB
+    bedrock["Bedrock — Claude Haiku 4.5"]
+    textract["Textract"]
+    pg["PostgreSQL (RDS)"]
+    valkey["Valkey (ElastiCache)"]
+    s3["S3 uploads"]
+    sqsq["SQS + DLQ"]
+    worker["ECS worker — process_job (idempotent)"]
+  end
+  class BK,bedrock,textract,pg,valkey,s3,sqsq,worker bk;
+  ai --> bedrock
+  bot --> bedrock
+  pdf --> textract
+  store --> pg
+  rlm --> valkey
+  stor --> s3
+  handlers == "/enqueue" ==> sqsq
+  sqsq --> worker
+  worker == "process_job" ==> services
+
+  subgraph FEAT["📌 Feature flows"]
+    direction TB
+    f1["1) Upload sao kê (CSV/Excel/PDF/ảnh) → 3 đường: sync /upload · presigned /process · async /enqueue→SQS"]
+    f2["2) Phân loại: keyword nhanh → Bedrock cho dòng mơ hồ → fallback LocalAI → lưu tuần tự"]
+    f3["3) Dashboard: build_summary (server) — chi=Σ|âm|, thu=Σ dương"]
+    f4["4) Ngân sách: set/get + cảnh báo vượt (UI form + chatbot set_budget)"]
+    f5["5) Chat money-coach: streaming + guardrails + bộ nhớ hội thoại"]
+  end

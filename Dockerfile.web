@@ -1,0 +1,21 @@
+# Long-running server image for ECS Fargate / App Runner (uvicorn).
+# (The other Dockerfile targets AWS Lambda via Mangum — this one is for a
+# persistent container backed by RDS Postgres + EFS uploads.)
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+# pymupdf enables the Bedrock PDF→image vision path; psycopg2-binary the
+# Postgres/RDS backend. Wheels exist for slim, so no build toolchain needed.
+COPY requirements.txt .
+RUN pip install -r requirements.txt pymupdf psycopg2-binary
+
+# App code + sample data (frontend is served separately by CloudFront/S3).
+COPY src/ ./src/
+COPY sample_data/ ./sample_data/
+
+EXPOSE 8000
+CMD ["uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8000"]

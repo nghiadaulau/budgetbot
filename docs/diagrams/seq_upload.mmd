@@ -1,0 +1,41 @@
+sequenceDiagram
+  autonumber
+  actor U as Người dùng
+  participant FE as Frontend (React)
+  participant API as FastAPI (ALB)
+  participant SVC as services.py
+  participant AI as AI (Bedrock↔Local)
+  participant DB as PostgreSQL
+  participant S3 as S3 uploads
+  participant Q as SQS
+  participant W as ECS Worker
+
+  U->>FE: Chọn file sao kê (CSV/Excel)
+  FE->>API: POST /upload (X-User-Id + Bearer JWT)
+  API->>API: verify Cognito JWT · enforce_rate_limit
+  alt File nhỏ — đồng bộ
+    API->>SVC: process_csv(user_id, file)
+    SVC->>DB: dedup (file hash + fingerprint / user)
+    SVC->>AI: phân loại từng dòng (keyword → Bedrock nếu mơ hồ → fallback Local)
+    AI-->>SVC: category + confidence
+    SVC->>DB: lưu giao dịch (tuần tự, thread-safe)
+    SVC-->>API: kết quả + summary
+    API-->>FE: 200 OK
+  else File lớn (>1MB) — bất đồng bộ
+    FE->>API: POST /enqueue
+    API->>S3: PUT file gốc
+    API->>Q: gửi job (QUEUED)
+    API-->>FE: 202 + job_id
+    Q->>W: deliver message
+    W->>SVC: process_job (idempotent)
+    SVC->>AI: phân loại
+    SVC->>DB: lưu giao dịch
+    W-->>Q: xong (COMPLETED)
+    loop Poll trạng thái
+      FE->>API: GET /job-status/{id}
+      API-->>FE: PROCESSING → COMPLETED
+    end
+  end
+  FE->>API: GET /summary (làm mới)
+  API->>DB: build_summary (GROUP BY danh mục)
+  API-->>FE: Dashboard cập nhật

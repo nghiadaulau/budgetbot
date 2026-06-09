@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="vi" class="">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta
+      name="description"
+      content="BudgetBot — Ngừng ghi chép chi tiêu bằng tay. Để AI làm việc đó."
+    />
+    <title>BudgetBot — Trợ lý tài chính AI</title>
+    <script>
+      // Apply persisted theme before paint to avoid a flash of the wrong theme.
+      (function () {
+        try {
+          var t = localStorage.getItem("budgetbot.theme");
+          var sysDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          if (t === "dark" || (!t && sysDark)) {
+            document.documentElement.classList.add("dark");
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

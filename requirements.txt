@@ -1,0 +1,18 @@
+fastapi>=0.110
+uvicorn[standard]>=0.27
+python-dotenv>=1.0
+python-multipart>=0.0.9
+pydantic>=2.6
+boto3>=1.34
+pytest>=8.0
+httpx>=0.27
+pdfplumber>=0.10.4
+openpyxl>=3.1            # parse .xlsx bank statements (.xls optional: pip install xlrd)
+loguru>=0.7              # structured JSON logging (PII-safe)
+pyjwt[crypto]>=2.8       # verify Cognito JWT server-side (REQUIRE_AUTH)
+redis>=5                 # API rate limiting via Redis/Valkey (REDIS_URL)
+pypdf>=4.0              # read PDF metadata/text
+Pillow>=10.0           # image handling for receipt extraction
+reportlab>=4.0         # generate sample receipt PDFs (dev/sample_data only)
+# Optional, only for the Bedrock PDF-vision path (PDF→image rasterization):
+#   pip install pymupdf

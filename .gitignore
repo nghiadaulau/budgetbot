@@ -1,0 +1,51 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local runtime data / DB
+_data/
+/data/
+*.sqlite
+*.sqlite3
+*.db
+
+# Env files (keep *.env.example)
+.env
+.env.local
+.env.*.local
+
+# Node / frontend build
+node_modules/
+dist/
+frontend/dist/
+*.tsbuildinfo
+
+# Terraform — never commit state/plans or the local working dir
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+
+# Agent / local-only docs (do NOT publish)
+CLAUDE.md
+.claude/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Misc
+*.tgz
+*.log

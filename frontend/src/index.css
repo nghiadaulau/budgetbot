@@ -1,0 +1,299 @@
+@import "tailwindcss";
+
+/* IBM Plex Sans — fintech-grade, true tabular figures, full Vietnamese diacritics. */
+@import "@fontsource/ibm-plex-sans/300.css";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-sans/700.css";
+
+/* Dark mode driven by a .dark class on <html> (toggled in JS, set pre-paint in index.html). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Design tokens — "Banking / Traditional Finance" calm slate-navy palette.
+   Income = emerald, Expense = red. Light + dark designed together.
+   ─────────────────────────────────────────────────────────────────────────── */
+:root {
+  --background: #f8fafc;
+  --foreground: #020617;
+  --card: #ffffff;
+  --card-foreground: #020617;
+  --popover: #ffffff;
+  --popover-foreground: #020617;
+
+  --primary: #0f172a;
+  --primary-foreground: #f8fafc;
+  --secondary: #eef2f7;
+  --secondary-foreground: #0f172a;
+
+  --muted: #eef2f7;
+  --muted-foreground: #64748b;
+  --accent: #e0e7ff;
+  --accent-foreground: #1e3a8a;
+
+  --positive: #059669; /* income / net-positive (semantic: success) */
+  --positive-foreground: #ffffff;
+  --negative: #dc2626; /* expense / over-budget (semantic: danger) */
+  --negative-foreground: #ffffff;
+  --warning: #b45309; /* alerts / near-limit (AA on light surfaces) */
+  --warning-foreground: #ffffff;
+
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #3b82f6;
+
+  --radius: 0.75rem;
+  /* Snappy ease-out for micro-interactions (Linear/Stripe feel). */
+  --ease-snappy: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Chart series — calm, accessible, distinct hues mapped to the 10 categories. */
+  --chart-1: #2563eb;
+  --chart-2: #059669;
+  --chart-3: #d97706;
+  --chart-4: #7c3aed;
+  --chart-5: #db2777;
+  --chart-6: #0891b2;
+  --chart-7: #65a30d;
+  --chart-8: #dc2626;
+}
+
+.dark {
+  /* Navy identity kept; surfaces lifted for clearer elevation, borders
+     strengthened for visibility, accents desaturated ~12% to ease glare. */
+  --background: #0e1626;
+  --foreground: #eef2f8;
+  --card: #1b2438;
+  --card-foreground: #eef2f8;
+  --popover: #1b2438;
+  --popover-foreground: #eef2f8;
+
+  --primary: #4f8ef7;
+  --primary-foreground: #0a1120;
+  --secondary: #232e45;
+  --secondary-foreground: #eef2f8;
+
+  --muted: #1b2438;
+  --muted-foreground: #9fadc4;
+  --accent: #1e335f;
+  --accent-foreground: #dbeafe;
+
+  --positive: #34c98e;
+  --positive-foreground: #042016;
+  --negative: #f0736f;
+  --negative-foreground: #2c0707;
+  --warning: #e0a23c;
+  --warning-foreground: #2a1a04;
+
+  --destructive: #f0736f;
+  --destructive-foreground: #2c0707;
+
+  --border: #2c3852;
+  --input: #2c3852;
+  --ring: #5b9bf8;
+
+  --chart-1: #60a5fa;
+  --chart-2: #34d399;
+  --chart-3: #fbbf24;
+  --chart-4: #a78bfa;
+  --chart-5: #f472b6;
+  --chart-6: #22d3ee;
+  --chart-7: #a3e635;
+  --chart-8: #f87171;
+}
+
+/* Expose tokens to Tailwind utilities (bg-background, text-muted-foreground, …). */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-positive: var(--positive);
+  --color-positive-foreground: var(--positive-foreground);
+  --color-negative: var(--negative);
+  --color-negative-foreground: var(--negative-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+  --color-chart-8: var(--chart-8);
+
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    font-family: var(--font-sans);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  /* Amounts, stats and table figures align cleanly — no layout shift. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+  /* Visible keyboard focus everywhere (a11y CRITICAL). */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Type scale ─────────────────────────────────────────────────────────────
+   4 core levels + label/caption. Weight tops out at 600 (one 700 hero allowed).
+   Numbers stay tabular via the .tabular helper. */
+@layer components {
+  .text-display {
+    font-size: 1.75rem; /* 28 */
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+  }
+  .text-h1 {
+    font-size: 1.25rem; /* 20 */
+    line-height: 1.25;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+  .text-h2 {
+    font-size: 1rem; /* 16 */
+    line-height: 1.3;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .text-body {
+    font-size: 0.875rem; /* 14 */
+    line-height: 1.55;
+    font-weight: 400;
+  }
+  .text-label {
+    font-size: 0.8125rem; /* 13 */
+    line-height: 1.4;
+    font-weight: 500;
+  }
+  .text-caption {
+    font-size: 0.75rem; /* 12 */
+    line-height: 1.4;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+}
+
+/* Thin, theme-aware scrollbars for the scroll regions (sidebar, tables). */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+/* ── Shimmer skeleton (replaces flat pulse) ─────────────────────────────────── */
+@keyframes bb-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--muted);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--foreground) 8%, transparent),
+    transparent
+  );
+  animation: bb-shimmer 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+  }
+}
+
+/* ── Lightweight overlay animations (replaces tailwindcss-animate) ──────────
+   Enter-only, transition-grade per the "no heavy animation" constraint.
+   Respect prefers-reduced-motion via the global rule above. */
+@keyframes bb-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes bb-pop-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.97);
+  }
+}
+@keyframes bb-slide-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes bb-slide-up {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+.bb-overlay {
+  animation: bb-fade-in 150ms ease-out;
+}
+.bb-content {
+  animation: bb-pop-in 160ms ease-out;
+}
+.bb-drawer {
+  animation: bb-slide-right 200ms ease-out;
+}
+.bb-pop {
+  animation: bb-slide-up 120ms ease-out;
+}

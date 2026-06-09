@@ -1,0 +1,49 @@
+flowchart LR
+  actorU["👤 Người dùng<br/>(đã đăng nhập)"]
+  actorG["👥 Khách / Guest"]
+  cog["🔐 Cognito"]
+  bed["🤖 Bedrock (AI)"]
+  tex["📄 Textract (OCR)"]
+
+  subgraph SYS["💰 BudgetBot — System boundary"]
+    direction TB
+    uc1(["Đăng ký / Đăng nhập"])
+    uc2(["Tải lên sao kê CSV / Excel"])
+    uc3(["Tải hóa đơn / ảnh (OCR)"])
+    uc4(["Thêm giao dịch thủ công"])
+    uc5(["Tự động phân loại giao dịch"])
+    uc6(["Xem Dashboard tổng quan"])
+    uc7(["Xem & sửa giao dịch"])
+    uc8(["Phân tích chi tiêu"])
+    uc9(["Đặt ngân sách & cảnh báo"])
+    uc10(["Chat trợ lý tài chính"])
+  end
+
+  actorU --- uc1
+  actorU --- uc2
+  actorU --- uc3
+  actorU --- uc4
+  actorU --- uc6
+  actorU --- uc7
+  actorU --- uc8
+  actorU --- uc9
+  actorU --- uc10
+  actorG --- uc2
+  actorG --- uc4
+  actorG --- uc6
+  actorG --- uc7
+  actorG --- uc8
+
+  uc1 -. include .- cog
+  uc2 -. include .- uc5
+  uc3 -. include .- uc5
+  uc3 -. include .- tex
+  uc5 -. include .- bed
+  uc10 -. include .- bed
+  uc9 -. extend .- uc10
+  classDef uc fill:#EAF4FF,stroke:#3b82f6,color:#0b2545;
+  classDef act fill:#FFF4E5,stroke:#d97706,color:#7c2d12;
+  classDef ext fill:#FCE4EC,stroke:#9333ea,color:#581c87;
+  class uc1,uc2,uc3,uc4,uc5,uc6,uc7,uc8,uc9,uc10 uc;
+  class actorU,actorG act;
+  class cog,bed,tex ext;
