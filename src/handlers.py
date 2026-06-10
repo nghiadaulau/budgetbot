@@ -143,10 +143,15 @@ def handle_enqueue(
     }
 
 
-def handle_job_status(job_id: str, userstore) -> dict:
-    """Trả về trạng thái của job theo job_id."""
+def handle_job_status(job_id: str, userstore, user_id: str) -> dict:
+    """Trả về trạng thái của job theo job_id — chỉ cho chủ sở hữu.
+
+    Scope theo user_id để tránh IDOR: job_id là UUID nhưng response chứa
+    filename/s3_key/error của người khác. Trả NOT_FOUND (không phải 403) khi
+    job thuộc user khác — không xác nhận sự tồn tại.
+    """
     job = userstore.get_job(job_id)
-    if not job:
+    if not job or job.get("user_id") != user_id:
         return {"job_id": job_id, "status": "NOT_FOUND"}
     return job
 

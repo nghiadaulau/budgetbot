@@ -6,8 +6,9 @@ def test_health(client):
     assert r.status_code == 200
     body = r.json()
     assert body["status"] == "ok"
-    assert body["ai_backend"] == "local"
-    assert body["db_backend"] in {"sqlite", "postgres", "dynamodb", "documentdb", "mysql"}
+    # /health is public — internal backend names are intentionally NOT disclosed.
+    assert "ai_backend" not in body and "db_backend" not in body
+    assert "require_auth" in body
     assert "Salary" in body["categories"] and "Bills" in body["categories"]
 
 

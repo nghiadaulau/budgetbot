@@ -11,6 +11,16 @@ PROMPT_VERSION = "2026-06-09.1"
 
 _CATEGORY_LINE = ", ".join(CATEGORIES)
 
+
+def _sanitize(text: object) -> str:
+    """Flatten an untrusted transaction description before it enters a prompt.
+
+    Collapses newlines/whitespace and neutralises double-quotes so a crafted
+    description cannot break out of the prompt structure or forge instructions.
+    Length-capped — descriptions are short by nature.
+    """
+    return " ".join(str(text).split()).replace('"', "'")[:200]
+
 CSV_CLASSIFY_SYSTEM = (
     "You are a Vietnamese personal-finance transaction categorizer. "
     f"Classify each transaction into exactly one of: {_CATEGORY_LINE}. "
@@ -36,7 +46,7 @@ CSV_CLASSIFY_FEWSHOT = (
 def build_csv_classify_user(rows: list[dict]) -> str:
     """Render a numbered `description | amount` list for batch classification."""
     lines = [
-        f"{i + 1}. {r.get('description', '').strip()} | {r.get('amount', 0)}"
+        f"{i + 1}. {_sanitize(r.get('description', ''))} | {r.get('amount', 0)}"
         for i, r in enumerate(rows)
     ]
     return (
@@ -53,7 +63,7 @@ MANUAL_CLASSIFY_SYSTEM = (
 
 
 def build_manual_classify_user(description: str, amount: float) -> str:
-    return f'Transaction: "{description}"\nAmount (VND): {amount}\nCategory:'
+    return f'Transaction: "{_sanitize(description)}"\nAmount (VND): {amount}\nCategory:'
 
 
 PDF_EXTRACT_SYSTEM = (

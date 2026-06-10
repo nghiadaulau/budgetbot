@@ -142,14 +142,26 @@ class LocalStorage:
         self.base = Path(base_dir)
         self.base.mkdir(parents=True, exist_ok=True)
 
+    def _safe_path(self, key: str) -> Path:
+        """Resolve `key` under base_dir, rejecting path traversal.
+
+        `key` embeds the user-supplied filename, so a crafted value like
+        ``../../etc/x`` must never escape the storage root.
+        """
+        path = (self.base / key).resolve()
+        base = self.base.resolve()
+        if path != base and base not in path.parents:
+            raise ValueError(f"Path traversal rejected: {key!r}")
+        return path
+
     def put(self, key: str, data: bytes) -> str:
-        path = self.base / key
+        path = self._safe_path(key)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
-        return f"file://{path.resolve()}"
+        return f"file://{path}"
 
     def get(self, key: str) -> bytes:
-        return (self.base / key).read_bytes()
+        return self._safe_path(key).read_bytes()
 
     def list(self, prefix: str = "") -> list:
         return [

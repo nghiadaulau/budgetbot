@@ -72,6 +72,24 @@ if hasattr(userstore, "migrate"):
     except Exception as exc:  # noqa: BLE001 — boot-time best effort
         logger.warning("migrate skipped: {}", exc)
 
+# Loud boot-time warnings for insecure configs — defaults stay dev-friendly, but
+# a production deploy must not run with these off (Terraform sets them true).
+if not config.require_auth:
+    logger.warning(
+        "SECURITY: REQUIRE_AUTH is OFF — the X-User-Id header is trusted without "
+        "verification (any caller can impersonate any user). Set REQUIRE_AUTH=true in production."
+    )
+if not config.rate_limit_enabled:
+    logger.warning(
+        "SECURITY: RATE_LIMIT_ENABLED is OFF — expensive AI endpoints are unthrottled. "
+        "Set RATE_LIMIT_ENABLED=true in production."
+    )
+if config.cognito_user_pool_id and not config.cognito_client_id:
+    logger.warning(
+        "SECURITY: COGNITO_USER_POOL_ID is set but COGNITO_CLIENT_ID is empty — JWT "
+        "audience/client_id validation is skipped. Set COGNITO_CLIENT_ID to enforce it."
+    )
+
 
 def _resolve_user_id(request, x_user_id: str | None) -> str | None:
     """Identity precedence: verified Cognito Bearer → API-GW authorizer claim →
@@ -161,11 +179,11 @@ async def _unhandled_exc(_request: Request, exc: Exception):
 
 @app.get("/health")
 def health() -> dict:
+    # Public, unauthenticated — keep only what the SPA needs (status, version,
+    # require_auth to toggle guest mode, categories). Internal backend names
+    # (ai/db/pdf) are not disclosed to anonymous callers.
     return {
         "status": "ok",
-        "ai_backend": config.ai_backend,
-        "db_backend": config.resolved_db_backend,
-        "pdf_backend": config.pdf_backend,
         "version": config.app_version,
         "categories": CATEGORIES,
         "require_auth": config.require_auth,
@@ -261,8 +279,8 @@ def job_status(
     x_user_id: str | None = Header(default=None),
 ) -> dict:
     """Async upload job status: QUEUED → PROCESSING → COMPLETED | FAILED."""
-    require_user(request, x_user_id)
-    return handlers.handle_job_status(job_id, userstore)
+    user_id = require_user(request, x_user_id)
+    return handlers.handle_job_status(job_id, userstore, user_id)
 
 
 IMAGE_MAX_BYTES = 10 * 1024 * 1024
